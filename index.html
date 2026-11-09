@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="uk"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090d16"><title>MediaToha 5.1</title>
+<meta name="theme-color" content="#090d16"><meta name="description" content="MediaToha — YouTube music, radio UA/ES/EU">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><title>MediaToha 5.1</title>
 <style>
 :root{--bg:#090d16;--card:#121826;--line:#1e293b;--c:#00f3ff;--p:#9d4edd;--t:#f1f5f9;--m:#94a3b8;color-scheme:dark}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
@@ -112,7 +114,7 @@ body.live .lv{display:block}body.live .sk{display:none}
  <div class="card"><h3 style="margin-top:0">YouTube</h3><input id="ytkey" placeholder="YouTube Data API key" style="width:100%"><p><small data-t="ytNote"></small></p></div>
  <div class="card"><button class="btn g" data-a="diag" data-t="diag"></button><p id="diag"></p></div>
  <div class="card"><h3 style="margin-top:0" data-t="about"></h3><b>MediaToha</b>
-  <p><span data-t="ver"></span>: 5.1</p><p><span data-t="author"></span>: Anatolii Shashok</p></div>
+  <p><span data-t="ver"></span>: 5.1</p><p><span data-t="author"></span>: Anatolii Serediuk</p></div>
 </section>
 </main>
 <div id="mini"><div id="mp"></div><img id="mc" alt="" data-a="openFull"><div class="i" data-a="openFull"><b id="mt"></b><small id="ma"></small></div>
@@ -184,9 +186,9 @@ const REG={ua:['UA'],es:['ES'],eu:['DE','FR','IT','GB','PL','PT','NL','RO']};let
 const RBH=['https://de1.api.radio-browser.info','https://de2.api.radio-browser.info','https://fi1.api.radio-browser.info','https://nl1.api.radio-browser.info'];
 const rbGet=p=>Promise.any(RBH.map(h=>jf(h+p,7000)));
 const FALL={ua:[['Radio ROKS','https://online.radioroks.ua/RadioROKS'],['Hit FM','https://online.hitfm.ua/HitFM'],['Kiss FM','https://online.kissfm.ua/KissFM'],['Українське радіо','https://radio.ukr.radio/ur1-mp3']],es:[['Los40','https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_SC'],['Cadena Dial','https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL_SC'],['Europa FM','https://playerservices.streamtheworld.com/api/livestream-redirect/EUROPAFM_SC']],eu:[['SomaFM Groove Salad','https://ice1.somafm.com/groovesalad-128-mp3'],['Radio Paradise','https://stream.radioparadise.com/mp3-128'],['SomaFM Secret Agent','https://ice1.somafm.com/secretagent-128-mp3']]};
-async function stations(r,q=''){const cs=REG[r],lim=cs.length>1?8:48,seen=new Set();
+async function stations(r,q=''){const cs=REG[r],lim=cs.length>1?15:100,seen=new Set();
  const rs=await Promise.allSettled(cs.map(c=>rbGet(`/json/stations/search?countrycode=${c}&hidebroken=true&order=clickcount&reverse=true&limit=${lim}${q?'&name='+encodeURIComponent(q):''}`)));
- const a=rs.flatMap(x=>x.value||[]).filter(s=>(s.url_resolved||s.url)&&!s.hls&&!seen.has(s.stationuuid)&&seen.add(s.stationuuid)).map(s=>({id:'rb_'+s.stationuuid,title:s.name.trim(),artist:[s.state,s.countrycode].filter(Boolean).join(', '),cover:s.favicon||PH,url:s.url_resolved||s.url,live:1,src:'radio'}));
+ const a=rs.flatMap(x=>x.value||[]).filter(s=>(s.url_resolved||s.url)&&!s.hls&&(location.protocol!=='https:'||(s.url_resolved||s.url).startsWith('https'))&&!seen.has(s.stationuuid)&&seen.add(s.stationuuid)).map(s=>({id:'rb_'+s.stationuuid,title:s.name.trim(),artist:[s.state,s.countrycode].filter(Boolean).join(', '),cover:s.favicon||PH,url:s.url_resolved||s.url,live:1,src:'radio'}));
  return a.length?a:(FALL[r]||[]).filter(f=>f[0].toLowerCase().includes(q.toLowerCase())).map(f=>({id:'fb_'+f[1],title:f[0],artist:'★',cover:PH,url:f[1],live:1,src:'radio'}))}
 const card=(s,i,n)=>`<div class="st" data-l="${n}" data-i="${i}" data-a="play"><img src="${esc(s.cover||PH)}" alt="" loading="lazy"><b>${esc(s.title)}</b><small>${esc(s.artist)}</small></div>`;
 async function loadRadio(q=''){const id=++rt,g=$('#radioGrid');g.innerHTML=`<small>${t('loading')}</small>`;const rs=await stations(reg,q);if(id!==rt)return;LST.rad=rs;g.innerHTML=rs.length?rs.map((s,i)=>card(s,i,'rad')).join(''):`<small>${t('noRes')}</small>`;}
@@ -315,4 +317,5 @@ async function loadHits(){const id=++hq,g=$('#homeHits'),other=lang==='uk'?'es':
  jf('https://api.invidious.io/instances.json?sort_by=type,users',6000).then(l=>l.filter(i=>i[1].api&&i[1].cors&&i[1].type==='https').slice(0,8).forEach(i=>INV.includes(i[1].uri)||INV.push(i[1].uri))).catch(()=>{});
  jf('https://piped-instances.kavin.rocks/',6000).then(l=>l.slice(0,8).forEach(i=>i.api_url&&!PIPED.includes(i.api_url)&&PIPED.push(i.api_url))).catch(()=>{});
 })();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
